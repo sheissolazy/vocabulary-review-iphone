@@ -161,6 +161,15 @@
             background: #ef4444;
         }
 
+        .btn-prev {
+            background: #f59e0b;
+        }
+
+        .btn-prev:disabled {
+            background: #d1d5db;
+            cursor: not-allowed;
+        }
+
         .btn-primary {
             background: #667eea;
             width: 100%;
@@ -299,6 +308,12 @@
             color: #666;
             margin-bottom: 30px;
         }
+
+        .nav-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
@@ -352,6 +367,10 @@
                 <button class="btn btn-know">✅ 认识</button>
             </div>
 
+            <div class="nav-buttons">
+                <button class="btn btn-prev" id="prevBtn" disabled>⬅️ 上一个</button>
+            </div>
+
             <div class="progress">
                 <div class="progress-bar">
                     <div id="progressFill" class="progress-fill" style="width: 0%"></div>
@@ -379,6 +398,7 @@
     <script>
         let allWords = [];
         let reviewQueue = [];
+        let reviewHistory = [];
         let currentWordIndex = 0;
         let isFlipped = false;
         let sessionStats = {
@@ -425,19 +445,24 @@
             return shuffled;
         }
 
-        function getWeightedWords() {
-            const weighted = [];
+        function generateReviewQueue() {
+            const queue = [];
             allWords.forEach(word => {
-                const weight = word.mastered ? 1 : (6 - (word.reviewLevel || 0));
+                // 根据 reviewLevel 计算权重
+                // reviewLevel 0-5，权重 6-1
+                const level = word.reviewLevel || 0;
+                const weight = Math.max(1, 6 - level); // 至少出现1次
+                
                 for (let i = 0; i < weight; i++) {
-                    weighted.push(word);
+                    queue.push({...word}); // 使用副本
                 }
             });
-            return shuffleArray(weighted);
+            return shuffleArray(queue);
         }
 
         function initializeReview() {
-            reviewQueue = getWeightedWords();
+            reviewQueue = generateReviewQueue();
+            reviewHistory = [];
             currentWordIndex = 0;
             sessionStats = { reviewed: 0, known: 0 };
             
@@ -466,6 +491,9 @@
             document.getElementById('btnGroup').classList.add('hidden');
             document.getElementById('flipHint').style.display = 'block';
 
+            // 更新上一个按钮状态
+            document.getElementById('prevBtn').disabled = currentWordIndex === 0;
+
             updateProgress();
         }
 
@@ -488,26 +516,50 @@
             markWord(false);
         });
 
+        document.getElementById('prevBtn').addEventListener('click', function() {
+            if (currentWordIndex > 0) {
+                currentWordIndex--;
+                
+                // 恢复上一个单词的统计
+                if (reviewHistory.length > 0) {
+                    const lastAction = reviewHistory.pop();
+                    if (lastAction.known) {
+                        sessionStats.known--;
+                    }
+                    sessionStats.reviewed--;
+                }
+                
+                showNextWord();
+                updateStats();
+            }
+        });
+
         function markWord(known) {
             const word = reviewQueue[currentWordIndex];
             
-            if (known) {
-                word.reviewLevel = Math.min((word.reviewLevel || 0) + 1, 5);
-                if (word.reviewLevel >= 5) {
-                    word.mastered = true;
+            // 记录操作历史
+            reviewHistory.push({
+                wordId: word.id,
+                known: known,
+                index: currentWordIndex
+            });
+            
+            // 更新原始单词数据
+            const originalWord = allWords.find(w => w.id === word.id);
+            if (originalWord) {
+                if (known) {
+                    originalWord.reviewLevel = Math.min((originalWord.reviewLevel || 0) + 1, 5);
+                    if (originalWord.reviewLevel >= 5) {
+                        originalWord.mastered = true;
+                    }
+                    sessionStats.known++;
+                } else {
+                    originalWord.reviewLevel = Math.max((originalWord.reviewLevel || 0) - 1, 0);
+                    originalWord.mastered = false;
                 }
-                sessionStats.known++;
-            } else {
-                word.reviewLevel = Math.max((word.reviewLevel || 0) - 1, 0);
-                word.mastered = false;
-            }
 
-            word.reviewDates = word.reviewDates || [];
-            word.reviewDates.push(new Date().toISOString());
-
-            const originalIndex = allWords.findIndex(w => w.id === word.id);
-            if (originalIndex !== -1) {
-                allWords[originalIndex] = word;
+                originalWord.reviewDates = originalWord.reviewDates || [];
+                originalWord.reviewDates.push(new Date().toISOString());
             }
 
             sessionStats.reviewed++;
