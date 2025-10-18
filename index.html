@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>单词复习 - 手机版</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            touch-action: pan-y;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+
+        h1 {
+            color: #667eea;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 2px solid #f0f0f0;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.3s;
+            position: relative;
+        }
+
+        .card:active {
+            transform: scale(0.98);
+        }
+
+        .word-front {
+            font-size: 42px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 20px;
+            word-break: break-word;
+        }
+
+        .word-back {
+            display: none;
+        }
+
+        .word-back.show {
+            display: block;
+        }
+
+        .chinese-meaning {
+            font-size: 28px;
+            color: #667eea;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .example-sentence {
+            font-size: 16px;
+            color: #666;
+            line-height: 1.6;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #f0f0f0;
+        }
+
+        .flip-hint {
+            position: absolute;
+            bottom: 20px;
+            font-size: 14px;
+            color: #999;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 18px;
+            border: none;
+            border-radius: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: white;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .btn-know {
+            background: #10b981;
+        }
+
+        .btn-unknown {
+            background: #ef4444;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            width: 100%;
+        }
+
+        .import-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+
+        .import-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-input-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: #f0f0f0;
+            border: 2px dashed #ccc;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 16px;
+        }
+
+        .file-input-label:active {
+            background: #e8e8e8;
+            border-color: #667eea;
+        }
+
+        .progress {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid #f0f0f0;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transition: width 0.3s;
+        }
+
+        .progress-text {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #999;
+            font-size: 16px;
+            padding: 40px 20px;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .alert {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            z-index: 1000;
+            animation: slideDown 0.3s;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        .complete-message {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .complete-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+
+        .complete-title {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .complete-text {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📱 单词复习</h1>
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-number" id="totalWords">0</div>
+                    <div class="stat-label">总单词</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="reviewedCount">0</div>
+                    <div class="stat-label">已复习</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="knownCount">0</div>
+                    <div class="stat-label">已掌握</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="alertBox" class="alert"></div>
+
+        <div id="importSection" class="import-section">
+            <div class="empty-state">
+                <div class="empty-state-icon">📚</div>
+                <h2>导入单词本</h2>
+                <p style="margin-bottom: 20px; color: #666;">从电脑端导出的 JSON 文件开始复习</p>
+            </div>
+            <div class="file-input-wrapper">
+                <input type="file" id="fileInput" accept=".json">
+                <label for="fileInput" class="file-input-label">
+                    📁 选择文件导入
+                </label>
+            </div>
+        </div>
+
+        <div id="reviewSection" class="hidden">
+            <div class="card" id="flashcard">
+                <div id="wordFront" class="word-front"></div>
+                <div id="wordBack" class="word-back">
+                    <div id="chineseMeaning" class="chinese-meaning"></div>
+                    <div id="exampleSentence" class="example-sentence"></div>
+                </div>
+                <div id="flipHint" class="flip-hint">👆 点击翻转</div>
+            </div>
+
+            <div id="btnGroup" class="btn-group hidden">
+                <button class="btn btn-unknown">❌ 不认识</button>
+                <button class="btn btn-know">✅ 认识</button>
+            </div>
+
+            <div class="progress">
+                <div class="progress-bar">
+                    <div id="progressFill" class="progress-fill" style="width: 0%"></div>
+                </div>
+                <div class="progress-text" id="progressText">0 / 0</div>
+            </div>
+
+            <button class="btn btn-primary" id="resetBtn">
+                🔄 重新开始
+            </button>
+        </div>
+
+        <div id="completeSection" class="import-section hidden">
+            <div class="complete-message">
+                <div class="complete-icon">🎉</div>
+                <div class="complete-title">太棒了！</div>
+                <div class="complete-text">你已经完成了本轮复习</div>
+                <button class="btn btn-primary" id="restartBtn">
+                    🔄 再复习一遍
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allWords = [];
+        let reviewQueue = [];
+        let currentWordIndex = 0;
+        let isFlipped = false;
+        let sessionStats = {
+            reviewed: 0,
+            known: 0
+        };
+
+        function showAlert(message) {
+            const alert = document.createElement('div');
+            alert.className = 'alert';
+            alert.textContent = message;
+            document.body.appendChild(alert);
+            setTimeout(() => alert.remove(), 2000);
+        }
+
+        document.getElementById('fileInput').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const words = JSON.parse(e.target.result);
+                    if (Array.isArray(words) && words.length > 0) {
+                        allWords = words;
+                        initializeReview();
+                        showAlert(`✅ 成功导入 ${words.length} 个单词`);
+                    } else {
+                        showAlert('❌ 文件格式错误');
+                    }
+                } catch (error) {
+                    showAlert('❌ 文件解析失败');
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        function getWeightedWords() {
+            const weighted = [];
+            allWords.forEach(word => {
+                const weight = word.mastered ? 1 : (6 - (word.reviewLevel || 0));
+                for (let i = 0; i < weight; i++) {
+                    weighted.push(word);
+                }
+            });
+            return shuffleArray(weighted);
+        }
+
+        function initializeReview() {
+            reviewQueue = getWeightedWords();
+            currentWordIndex = 0;
+            sessionStats = { reviewed: 0, known: 0 };
+            
+            document.getElementById('importSection').classList.add('hidden');
+            document.getElementById('reviewSection').classList.remove('hidden');
+            document.getElementById('completeSection').classList.add('hidden');
+            
+            updateStats();
+            showNextWord();
+        }
+
+        function showNextWord() {
+            if (currentWordIndex >= reviewQueue.length) {
+                showComplete();
+                return;
+            }
+
+            const word = reviewQueue[currentWordIndex];
+            isFlipped = false;
+
+            document.getElementById('wordFront').textContent = word.english;
+            document.getElementById('chineseMeaning').textContent = word.chinese;
+            document.getElementById('exampleSentence').textContent = word.example || '';
+            
+            document.getElementById('wordBack').classList.remove('show');
+            document.getElementById('btnGroup').classList.add('hidden');
+            document.getElementById('flipHint').style.display = 'block';
+
+            updateProgress();
+        }
+
+        document.getElementById('flashcard').addEventListener('click', function() {
+            if (!isFlipped) {
+                isFlipped = true;
+                document.getElementById('wordBack').classList.add('show');
+                document.getElementById('btnGroup').classList.remove('hidden');
+                document.getElementById('flipHint').style.display = 'none';
+            }
+        });
+
+        document.querySelector('.btn-know').addEventListener('click', function(e) {
+            e.stopPropagation();
+            markWord(true);
+        });
+
+        document.querySelector('.btn-unknown').addEventListener('click', function(e) {
+            e.stopPropagation();
+            markWord(false);
+        });
+
+        function markWord(known) {
+            const word = reviewQueue[currentWordIndex];
+            
+            if (known) {
+                word.reviewLevel = Math.min((word.reviewLevel || 0) + 1, 5);
+                if (word.reviewLevel >= 5) {
+                    word.mastered = true;
+                }
+                sessionStats.known++;
+            } else {
+                word.reviewLevel = Math.max((word.reviewLevel || 0) - 1, 0);
+                word.mastered = false;
+            }
+
+            word.reviewDates = word.reviewDates || [];
+            word.reviewDates.push(new Date().toISOString());
+
+            const originalIndex = allWords.findIndex(w => w.id === word.id);
+            if (originalIndex !== -1) {
+                allWords[originalIndex] = word;
+            }
+
+            sessionStats.reviewed++;
+            currentWordIndex++;
+            
+            updateStats();
+            showNextWord();
+        }
+
+        function updateStats() {
+            document.getElementById('totalWords').textContent = allWords.length;
+            document.getElementById('reviewedCount').textContent = sessionStats.reviewed;
+            document.getElementById('knownCount').textContent = sessionStats.known;
+        }
+
+        function updateProgress() {
+            const progress = (currentWordIndex / reviewQueue.length) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+            document.getElementById('progressText').textContent = 
+                `${currentWordIndex} / ${reviewQueue.length}`;
+        }
+
+        function showComplete() {
+            document.getElementById('reviewSection').classList.add('hidden');
+            document.getElementById('completeSection').classList.remove('hidden');
+        }
+
+        document.getElementById('resetBtn').addEventListener('click', initializeReview);
+        document.getElementById('restartBtn').addEventListener('click', initializeReview);
+
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function(event) {
+            const now = Date.now();
+            if (now - lastTouchEnd <= 300) {
+                event.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+    </script>
+</body>
+</html>
