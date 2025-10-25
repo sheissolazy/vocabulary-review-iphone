@@ -402,7 +402,7 @@
         let currentWordIndex = 0;
         let isFlipped = false;
         let sessionStats = {
-            reviewed: 0,
+            reviewedWords: new Set(),
             known: 0
         };
 
@@ -448,13 +448,11 @@
         function generateReviewQueue() {
             const queue = [];
             allWords.forEach(word => {
-                // 根据 reviewLevel 计算权重
-                // reviewLevel 0-5，权重 6-1
                 const level = word.reviewLevel || 0;
-                const weight = Math.max(1, 6 - level); // 至少出现1次
+                const weight = Math.max(1, 6 - level);
                 
                 for (let i = 0; i < weight; i++) {
-                    queue.push({...word}); // 使用副本
+                    queue.push({...word});
                 }
             });
             return shuffleArray(queue);
@@ -464,7 +462,7 @@
             reviewQueue = generateReviewQueue();
             reviewHistory = [];
             currentWordIndex = 0;
-            sessionStats = { reviewed: 0, known: 0 };
+            sessionStats = { reviewedWords: new Set(), known: 0 };
             
             document.getElementById('importSection').classList.add('hidden');
             document.getElementById('reviewSection').classList.remove('hidden');
@@ -491,7 +489,6 @@
             document.getElementById('btnGroup').classList.add('hidden');
             document.getElementById('flipHint').style.display = 'block';
 
-            // 更新上一个按钮状态
             document.getElementById('prevBtn').disabled = currentWordIndex === 0;
 
             updateProgress();
@@ -520,13 +517,8 @@
             if (currentWordIndex > 0) {
                 currentWordIndex--;
                 
-                // 恢复上一个单词的统计
                 if (reviewHistory.length > 0) {
-                    const lastAction = reviewHistory.pop();
-                    if (lastAction.known) {
-                        sessionStats.known--;
-                    }
-                    sessionStats.reviewed--;
+                    reviewHistory.pop();
                 }
                 
                 showNextWord();
@@ -537,14 +529,14 @@
         function markWord(known) {
             const word = reviewQueue[currentWordIndex];
             
-            // 记录操作历史
             reviewHistory.push({
                 wordId: word.id,
                 known: known,
                 index: currentWordIndex
             });
             
-            // 更新原始单词数据
+            sessionStats.reviewedWords.add(word.id);
+            
             const originalWord = allWords.find(w => w.id === word.id);
             if (originalWord) {
                 if (known) {
@@ -552,7 +544,6 @@
                     if (originalWord.reviewLevel >= 5) {
                         originalWord.mastered = true;
                     }
-                    sessionStats.known++;
                 } else {
                     originalWord.reviewLevel = Math.max((originalWord.reviewLevel || 0) - 1, 0);
                     originalWord.mastered = false;
@@ -562,7 +553,6 @@
                 originalWord.reviewDates.push(new Date().toISOString());
             }
 
-            sessionStats.reviewed++;
             currentWordIndex++;
             
             updateStats();
@@ -570,9 +560,11 @@
         }
 
         function updateStats() {
+            const masteredCount = allWords.filter(w => w.mastered).length;
+            
             document.getElementById('totalWords').textContent = allWords.length;
-            document.getElementById('reviewedCount').textContent = sessionStats.reviewed;
-            document.getElementById('knownCount').textContent = sessionStats.known;
+            document.getElementById('reviewedCount').textContent = sessionStats.reviewedWords.size;
+            document.getElementById('knownCount').textContent = masteredCount;
         }
 
         function updateProgress() {
